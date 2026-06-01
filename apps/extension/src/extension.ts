@@ -1,11 +1,16 @@
 import * as vscode from 'vscode';
 import { KoalaWebviewProvider } from './webview/provider';
 import { startIPCSocket } from './ipc/socket';
+import { StorageService } from './storage/service';
+import { migrateLegacySettings } from './storage/migrate';
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
   console.log('Koala Code extension is now active!');
 
-  const provider = new KoalaWebviewProvider(context);
+  const storage = new StorageService();
+  await migrateLegacySettings(context, storage);
+
+  const provider = new KoalaWebviewProvider(context, storage);
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(KoalaWebviewProvider.viewType, provider)
   );

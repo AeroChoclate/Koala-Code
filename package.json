@@ -9,6 +9,7 @@
     "typecheck": "turbo run typecheck"
   },
   "devDependencies": {
+    "@types/node": "20.x",
     "turbo": "^2.0.0",
     "typescript": "^6.0.3"
   },

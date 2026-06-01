@@ -1,5 +1,7 @@
 # Additional
-Notes
+Notes/
+.cokoala/
+*.vsix
 .turbo/cache
 
 # Logs
