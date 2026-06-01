@@ -1,7 +1,6 @@
 @import "tailwindcss";
 
 :root {
-  /* Provide fallbacks for when testing in browser, otherwise use vscode variables */
   --vscode-editor-background: #1e1e1e;
   --vscode-editor-foreground: #d4d4d4;
   --vscode-button-background: #0e639c;
@@ -10,13 +9,222 @@
   --vscode-focusBorder: #007fd4;
   --vscode-textLink-foreground: #3794ff;
   --vscode-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --koala-surface: color-mix(in srgb, var(--vscode-editor-background) 82%, white 18%);
+  --koala-surface-soft: color-mix(in srgb, var(--vscode-editor-background) 90%, white 10%);
+  --koala-surface-strong: color-mix(in srgb, var(--vscode-editor-background) 70%, black 30%);
+  --koala-border: color-mix(in srgb, var(--vscode-focusBorder) 28%, transparent);
+  --koala-border-strong: color-mix(in srgb, var(--vscode-textLink-foreground) 42%, transparent);
+  --koala-accent: var(--vscode-textLink-foreground);
+  --koala-accent-soft: color-mix(in srgb, var(--vscode-textLink-foreground) 24%, transparent);
+  --koala-glow: color-mix(in srgb, var(--vscode-textLink-foreground) 35%, transparent);
+  --koala-rainbow: linear-gradient(90deg, #38bdf8 0%, #60a5fa 16%, #818cf8 32%, #c084fc 48%, #f472b6 64%, #fb7185 80%, #f59e0b 100%);
+}
+
+html,
+body,
+#root {
+  height: 100%;
 }
 
 body {
-  background-color: var(--vscode-editor-background);
+  background:
+    radial-gradient(circle at top, color-mix(in srgb, var(--koala-accent) 12%, transparent) 0%, transparent 38%),
+    var(--vscode-editor-background);
   color: var(--vscode-editor-foreground);
   font-family: var(--vscode-font-family);
   margin: 0;
   padding: 0;
   overflow: hidden;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--vscode-focusBorder) 35%, transparent);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@keyframes koala-rainbow-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+}
+
+@keyframes koala-pulse-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--koala-glow) 0%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 24px 0 color-mix(in srgb, var(--koala-glow) 55%, transparent);
+  }
+}
+
+@keyframes koala-status-breathe {
+  0%,
+  100% {
+    opacity: 0.72;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-1px);
+  }
+}
+
+.koala-panel {
+  background: color-mix(in srgb, var(--koala-surface) 92%, transparent);
+  border: 1px solid var(--koala-border);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 8%, transparent);
+  backdrop-filter: blur(14px);
+}
+
+.koala-panel-strong {
+  background: color-mix(in srgb, var(--koala-surface-strong) 88%, transparent);
+  border: 1px solid var(--koala-border-strong);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 10%, transparent),
+    0 0 24px color-mix(in srgb, var(--koala-glow) 18%, transparent);
+}
+
+.koala-rainbow-bar {
+  background-image: var(--koala-rainbow);
+  background-size: 200% 100%;
+  animation: koala-rainbow-shift 2.2s linear infinite;
+}
+
+.koala-glow {
+  animation: koala-pulse-glow 2.8s ease-in-out infinite;
+}
+
+.koala-status-copy {
+  animation: koala-status-breathe 2.4s ease-in-out infinite;
+}
+
+.koala-toolbar-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.25rem;
+  min-width: 2.25rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--koala-border);
+  background: color-mix(in srgb, var(--koala-surface) 76%, transparent);
+  color: var(--vscode-editor-foreground);
+  transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
+}
+
+.koala-toolbar-button:hover {
+  border-color: var(--koala-border-strong);
+  background: color-mix(in srgb, var(--koala-accent-soft) 52%, var(--koala-surface));
+  transform: translateY(-1px);
+}
+
+.koala-primary-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 0.875rem;
+  border: 1px solid var(--koala-border-strong);
+  background: color-mix(in srgb, var(--vscode-button-background) 78%, white 22%);
+  color: var(--vscode-button-foreground);
+  padding: 0.625rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  transition: filter 140ms ease, transform 140ms ease;
+}
+
+.koala-primary-button:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.koala-context-chip {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--koala-border) 72%, transparent);
+  background: color-mix(in srgb, var(--koala-surface-soft) 82%, transparent);
+  padding: 0.25rem 0.625rem;
+  color: color-mix(in srgb, var(--vscode-editor-foreground) 78%, transparent);
+  font-size: 0.6875rem;
+  line-height: 1.2;
+}
+
+.koala-mode-pill {
+  border-radius: 999px;
+  border: 1px solid var(--koala-border);
+  background: color-mix(in srgb, var(--koala-surface-soft) 86%, transparent);
+  color: color-mix(in srgb, var(--vscode-editor-foreground) 72%, transparent);
+  padding: 0.35rem 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  transition: border-color 140ms ease, background 140ms ease, color 140ms ease, transform 140ms ease;
+}
+
+.koala-mode-pill:hover {
+  border-color: var(--koala-border-strong);
+  color: var(--vscode-editor-foreground);
+  transform: translateY(-1px);
+}
+
+.koala-mode-pill-active {
+  border-color: var(--koala-border-strong);
+  background: color-mix(in srgb, var(--koala-accent-soft) 72%, var(--koala-surface));
+  color: white;
+  box-shadow: 0 0 18px color-mix(in srgb, var(--koala-glow) 18%, transparent);
+}
+
+.koala-search-shell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 0.875rem;
+  border: 1px solid var(--koala-border);
+  background: color-mix(in srgb, var(--koala-surface-soft) 86%, transparent);
+  padding: 0.55rem 0.75rem;
+}
+
+.koala-search-input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  background: transparent;
+  color: var(--vscode-editor-foreground);
+  font-size: 0.8125rem;
+  outline: none;
+}
+
+.koala-search-input::placeholder {
+  color: color-mix(in srgb, var(--vscode-editor-foreground) 42%, transparent);
+}
+
+.koala-history-item {
+  display: flex;
+  gap: 0.75rem;
+  border-radius: 1rem;
+  border: 1px solid var(--koala-border);
+  background: color-mix(in srgb, var(--koala-surface) 78%, transparent);
+  padding: 0.75rem;
+  transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
+}
+
+.koala-history-item:hover {
+  border-color: var(--koala-border-strong);
+  background: color-mix(in srgb, var(--koala-accent-soft) 28%, var(--koala-surface));
+  transform: translateY(-1px);
 }

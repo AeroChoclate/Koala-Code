@@ -39,10 +39,44 @@ export type ChatMessage = {
   content: string;
 };
 
+export type StoredChatMessage = {
+  role: 'user' | 'agent';
+  content: string;
+  timestamp: string;
+};
+
+export type Conversation = {
+  id: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+  messages: StoredChatMessage[];
+};
+
+export type ConversationSummary = {
+  id: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+  messageCount: number;
+  lastMessagePreview: string;
+};
+
+export type ContextInfo = {
+  workspace?: string;
+  activeFile?: string;
+  branch?: string;
+};
+
 // Messages from Webview -> Extension Host
 export type WebviewMessage =
   | { type: 'webview:ready' }
   | { type: 'chat:send'; value: string }
+  | { type: 'chat:new' }
+  | { type: 'chat:history:list' }
+  | { type: 'chat:history:load'; id: string }
+  | { type: 'chat:history:search'; query: string }
+  | { type: 'chat:history:delete'; id: string }
   | { type: 'settings:get' }
   | { type: 'settings:save'; settings: Partial<ExtensionSettings> }
   | { type: 'permission:approve'; id: string }
@@ -58,6 +92,10 @@ export type PermissionRequest = {
 // Messages from Extension Host -> Webview
 export type HostMessage =
   | { type: 'chat:update'; messages: ChatMessage[] }
+  | { type: 'chat:history:list-result'; conversations: ConversationSummary[] }
+  | { type: 'chat:history:load-result'; conversation: Conversation }
+  | { type: 'chat:history:search-result'; conversations: ConversationSummary[] }
+  | { type: 'context:update'; context: ContextInfo }
   | { type: 'settings:update'; settings: ExtensionSettings }
   | { type: 'permission:ask'; request: PermissionRequest }
   | { type: 'agent:status'; status: 'idle' | 'working' | 'waiting'; startedAt?: number };
