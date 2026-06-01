@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Bot, Clock3, Plus, Send, Settings, User } from 'lucide-react';
+import { Clock3, Plus, Send, Settings, User } from 'lucide-react';
 import {
   AgentMode,
   ChatMessage,
@@ -13,6 +13,15 @@ import {
 import { SettingsView } from './Settings';
 import { PermissionModal } from './PermissionModal';
 import { HistoryPanel } from './HistoryPanel';
+
+const KoalaIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-[var(--koala-accent)]">
+    <path d="M7 6.5C7 4.57 8.57 3 10.5 3C11.55 3 12.5 3.47 13.14 4.2C13.49 4.07 13.87 4 14.26 4C16.03 4 17.46 5.43 17.46 7.2C17.46 7.42 17.43 7.64 17.39 7.86C18.98 8.58 20 10.16 20 12C20 14.76 17.76 17 15 17H9C6.24 17 4 14.76 4 12C4 10.15 5.04 8.56 6.64 7.85C6.52 7.42 7 7.03 7 6.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <circle cx="9.25" cy="10.75" r="1" fill="currentColor"/>
+    <circle cx="14.75" cy="10.75" r="1" fill="currentColor"/>
+    <path d="M10 13.75C10.47 14.4 11.19 14.75 12 14.75C12.81 14.75 13.53 14.4 14 13.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+  </svg>
+);
 
 function ThinkingTimer({ startedAt }: { startedAt: number }) {
   const [elapsed, setElapsed] = useState(0);
@@ -189,7 +198,7 @@ export default function App() {
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
             <div className="koala-panel-strong koala-glow flex h-9 w-9 items-center justify-center rounded-xl">
-              <Bot size={18} className="text-[var(--koala-accent)]" />
+              <KoalaIcon />
             </div>
             <div className="min-w-0">
               <div className="truncate font-semibold tracking-[0.01em]">Koala Code</div>
@@ -250,7 +259,7 @@ export default function App() {
             <div key={i} className={`flex gap-3 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               {m.role === 'agent' && (
                 <div className="koala-panel-strong mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl">
-                  <Bot size={15} className="text-[var(--koala-accent)]" />
+                  <KoalaIcon />
                 </div>
               )}
               <div
@@ -289,7 +298,7 @@ export default function App() {
                 <div className="mb-3 flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3">
                     <div className="koala-panel-strong koala-glow flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
-                      <Bot size={16} className="text-[var(--koala-accent)]" />
+                      <KoalaIcon />
                     </div>
                     <div>
                       <div className="text-sm font-semibold text-white/92">{statusMeta.title}</div>
