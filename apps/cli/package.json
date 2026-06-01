@@ -1,0 +1,25 @@
+{
+  "name": "koala-cli",
+  "version": "1.0.0",
+  "private": true,
+  "bin": {
+    "koala": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsup src/index.tsx --format cjs --dts",
+    "dev": "tsup src/index.tsx --format cjs --watch",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@koala/core": "workspace:*",
+    "@koala/shared": "workspace:*",
+    "ink": "^4.4.1",
+    "react": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "~20.19.41",
+    "@types/react": "^18.3.29",
+    "tsup": "^8.0.2",
+    "typescript": "^6.0.3"
+  }
+}

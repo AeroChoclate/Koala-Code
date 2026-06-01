@@ -1,0 +1,64 @@
+{
+  "name": "koala-extension",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "vscode": "^1.88.0"
+  },
+  "activationEvents": [
+    "onView:koalaCode.webview"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "koala-sidebar",
+          "title": "Koala Code",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "koala-sidebar": [
+        {
+          "type": "webview",
+          "id": "koalaCode.webview",
+          "name": "Koala Code"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "koalaCode.start",
+        "title": "Koala Code: Start Agent",
+        "category": "Koala"
+      }
+    ]
+  },
+  "main": "./dist/extension.js",
+  "scripts": {
+    "vscode:prepublish": "pnpm run package",
+    "build": "node esbuild.js",
+    "compile": "pnpm run check-types && pnpm run lint && node esbuild.js",
+    "watch": "pnpm-run-all -p watch:*",
+    "watch:esbuild": "node esbuild.js --watch",
+    "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
+    "package": "pnpm run check-types && pnpm run lint && node esbuild.js --production",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "pnpm run compile-tests && pnpm run compile && pnpm run lint",
+    "check-types": "tsc --noEmit",
+    "lint": "eslint src --ext ts",
+    "test": "vscode-test"
+  },
+  "dependencies": {
+    "@koala/core": "workspace:*",
+    "@koala/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.88.0",
+    "@types/node": "20.x",
+    "typescript": "^6.0.3",
+    "esbuild": "^0.20.2"
+  }
+}
