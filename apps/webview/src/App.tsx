@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Clock3, Plus, Send, Settings, User } from 'lucide-react';
+import { Clock3, Plus, Send, Settings, User, Copy, Check, ThumbsUp, ThumbsDown } from 'lucide-react';
 import {
   AgentMode,
   ChatMessage,
@@ -13,6 +13,7 @@ import {
 import { SettingsView } from './Settings';
 import { PermissionModal } from './PermissionModal';
 import { HistoryPanel } from './HistoryPanel';
+import { ContextUsageBar } from './ContextUsageBar';
 
 const KoalaIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-[var(--koala-accent)]">
@@ -80,6 +81,14 @@ export default function App() {
   const [agentStatus, setAgentStatus] = useState<'idle' | 'working' | 'waiting'>('idle');
   const [thinkingStartedAt, setThinkingStartedAt] = useState<number | null>(null);
   const [contextInfo, setContextInfo] = useState<ContextInfo>({});
+  const [showSessionSummaryPrompt, setShowSessionSummaryPrompt] = useState(false);
+  const [sessionSummaryConversationId, setSessionSummaryConversationId] = useState<string | null>(null);
+  const [sessionSummaryMessages, setSessionSummaryMessages] = useState<ChatMessage[]>([]);
+  const [showAutoSummaryPrompt, setShowAutoSummaryPrompt] = useState(false);
+  const [autoSummaryConversationId, setAutoSummaryConversationId] = useState<string | null>(null);
+  const [autoSummaryMessages, setAutoSummaryMessages] = useState<ChatMessage[]>([]);
+  const [copiedMessageIndex, setCopiedMessageIndex] = useState<number | null>(null);
+  const [messageFeedback, setMessageFeedback] = useState<Record<number, 'positive' | 'negative'>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const isAgentActive = agentStatus === 'working' || agentStatus === 'waiting';
@@ -126,6 +135,16 @@ export default function App() {
           } else if (msg.status === 'idle') {
             setThinkingStartedAt(null);
           }
+          break;
+        case 'session:summary:prompt':
+          setSessionSummaryConversationId(msg.conversationId);
+          setSessionSummaryMessages(msg.messages);
+          setShowSessionSummaryPrompt(true);
+          break;
+        case 'session:auto-summary:prompt':
+          setAutoSummaryConversationId(msg.conversationId);
+          setAutoSummaryMessages(msg.messages);
+          setShowAutoSummaryPrompt(true);
           break;
       }
     };
@@ -177,6 +196,67 @@ export default function App() {
   const handleDeny = (id: string) => {
     setPermissions((prev) => prev.filter((p) => p.id !== id));
     postMessage({ type: 'permission:deny', id });
+  };
+
+  const handleSessionSummaryYes = () => {
+    const summaryContent = sessionSummaryMessages
+      .map(m => `${m.role === 'user' ? 'User' : 'Agent'}: ${m.content}`)
+      .join('\n\n');
+    
+    postMessage({ 
+      type: 'session:summary:save', 
+      content: summaryContent,
+      conversationId: sessionSummaryConversationId || ''
+    });
+    setShowSessionSummaryPrompt(false);
+    setSessionSummaryConversationId(null);
+    setSessionSummaryMessages([]);
+  };
+
+  const handleSessionSummaryNo = () => {
+    postMessage({ type: 'session:summary:dismiss' });
+    setShowSessionSummaryPrompt(false);
+    setSessionSummaryConversationId(null);
+    setSessionSummaryMessages([]);
+  };
+
+  const handleAutoSummarizeYes = () => {
+    const summaryContent = autoSummaryMessages
+      .map(m => `${m.role === 'user' ? 'User' : 'Agent'}: ${m.content}`)
+      .join('\n\n');
+    
+    postMessage({ 
+      type: 'session:summary:save', 
+      content: summaryContent,
+      conversationId: autoSummaryConversationId || ''
+    });
+    setShowAutoSummaryPrompt(false);
+    setAutoSummaryConversationId(null);
+    setAutoSummaryMessages([]);
+  };
+
+  const handleAutoSummarizeNo = () => {
+    setShowAutoSummaryPrompt(false);
+    setAutoSummaryConversationId(null);
+    setAutoSummaryMessages([]);
+  };
+
+  const handleCopyMessage = async (content: string, index: number) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopiedMessageIndex(index);
+      setTimeout(() => setCopiedMessageIndex(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy message:', err);
+    }
+  };
+
+  const handleMessageFeedback = (index: number, rating: 'positive' | 'negative') => {
+    setMessageFeedback(prev => ({
+      ...prev,
+      [index]: prev[index] === rating ? undefined : rating
+    }));
+    postMessage({ type: 'message:feedback', messageIndex: index, rating });
   };
 
   if (!settings) {
@@ -243,6 +323,22 @@ export default function App() {
         </div>
       </div>
 
+      {settings.api.model && (
+        <ContextUsageBar 
+          messages={messages} 
+          model={settings.api.model} 
+          onAutoSummarize={(percentage) => {
+            if (settings.sessionSummary?.enabled && !showAutoSummaryPrompt) {
+              postMessage({ 
+                type: 'session:auto-summary:prompt', 
+                conversationId: sessionSummaryConversationId || '',
+                messages: messages
+              });
+            }
+          }} 
+        />
+      )}
+
       <div className="h-1 shrink-0 overflow-hidden bg-white/5">
         {isAgentActive && <div className="koala-rainbow-bar h-full w-full shadow-[0_0_16px_var(--koala-glow)]" />}
       </div>
@@ -256,24 +352,75 @@ export default function App() {
             </div>
           )}
           {messages.map((m, i) => (
-            <div key={i} className={`flex gap-3 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div key={i} className={`group flex gap-3 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               {m.role === 'agent' && (
                 <div className="koala-panel-strong mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl">
                   <KoalaIcon />
                 </div>
               )}
-              <div
-                className={[
-                  'max-w-[88%] rounded-2xl border px-4 py-3 whitespace-pre-wrap break-words shadow-[0_12px_32px_rgba(0,0,0,0.18)]',
-                  m.role === 'user'
-                    ? 'border-[var(--koala-border-strong)] bg-[color:color-mix(in_srgb,var(--vscode-textLink-foreground)_18%,var(--vscode-editor-background)_82%)] text-white'
-                    : 'koala-panel text-[var(--vscode-editor-foreground)]',
-                ].join(' ')}
-              >
-                <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
-                  {m.role === 'user' ? 'You' : 'Koala'}
+              <div className="relative">
+                <div
+                  className={[
+                    'max-w-[88%] rounded-2xl border px-4 py-3 whitespace-pre-wrap break-words shadow-[0_12px_32px_rgba(0,0,0,0.18)]',
+                    m.role === 'user'
+                      ? 'border-[var(--koala-border-strong)] bg-[color:color-mix(in_srgb,var(--vscode-textLink-foreground)_18%,var(--vscode-editor-background)_82%)] text-white'
+                      : 'koala-panel text-[var(--vscode-editor-foreground)]',
+                  ].join(' ')}
+                >
+                  <div className="mb-1 flex items-center justify-between gap-2">
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
+                      {m.role === 'user' ? 'You' : 'Koala'}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      {m.role === 'agent' && (
+                        <div className="flex items-center gap-0.5">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMessageFeedback(i, 'positive');
+                            }}
+                            className={`rounded-md p-1 transition-all hover:bg-white/10 ${
+                              messageFeedback[i] === 'positive' ? 'text-green-400' : 'text-white/45'
+                            }`}
+                            title="Good response"
+                          >
+                            <ThumbsUp size={12} />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMessageFeedback(i, 'negative');
+                            }}
+                            className={`rounded-md p-1 transition-all hover:bg-white/10 ${
+                              messageFeedback[i] === 'negative' ? 'text-red-400' : 'text-white/45'
+                            }`}
+                            title="Bad response"
+                          >
+                            <ThumbsDown size={12} />
+                          </button>
+                        </div>
+                      )}
+                      <button
+                        onClick={() => handleCopyMessage(m.content, i)}
+                        className="invisible group-hover:visible inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] transition-all hover:bg-white/10"
+                        title="Copy message"
+                      >
+                        {copiedMessageIndex === i ? (
+                          <>
+                            <Check size={12} className="text-green-400" />
+                            <span className="text-green-400">Copied</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy size={12} />
+                            <span className="text-white/45">Copy</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                  <div>{m.content}</div>
                 </div>
-                <div>{m.content}</div>
               </div>
               {m.role === 'user' && (
                 <div className="koala-panel mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl">
@@ -372,6 +519,79 @@ export default function App() {
           onSave={handleSaveSettings}
           onClose={() => setShowSettings(false)}
         />
+      )}
+
+      {showSessionSummaryPrompt && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="koala-panel-strong mx-4 w-full max-w-md rounded-2xl border border-[var(--koala-border)] p-6 shadow-2xl">
+            <div className="mb-4 text-center">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--vscode-button-background)]/20">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-[var(--vscode-button-background)]">
+                  <path d="M7 6.5C7 4.57 8.57 3 10.5 3C11.55 3 12.5 3.47 13.14 4.2C13.49 4.07 13.87 4 14.26 4C16.03 4 17.46 5.43 17.46 7.2C17.46 7.42 17.43 7.64 17.39 7.86C18.98 8.58 20 10.16 20 12C20 14.76 17.76 17 15 17H9C6.24 17 4 14.76 4 12C4 10.15 5.04 8.56 6.64 7.85C6.52 7.42 7 7.03 7 6.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <circle cx="9.25" cy="10.75" r="1" fill="currentColor"/>
+                  <circle cx="14.75" cy="10.75" r="1" fill="currentColor"/>
+                  <path d="M10 13.75C10.47 14.4 11.19 14.75 12 14.75C12.81 14.75 13.53 14.4 14 13.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
+              </div>
+              <h3 className="mb-1 text-lg font-semibold text-[var(--vscode-editor-foreground)]">
+                Save Session Summary?
+              </h3>
+              <p className="text-sm text-[var(--vscode-descriptionForeground)]">
+                Would you like to save a summary of this conversation to the session-summaries folder?
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={handleSessionSummaryNo}
+                className="flex-1 rounded-xl border border-[var(--vscode-input-border)] bg-[var(--vscode-button-secondaryBackground)] px-4 py-2.5 text-sm font-medium text-[var(--vscode-button-secondaryForeground)] transition-all hover:bg-[var(--vscode-button-secondaryHoverBackground)]"
+              >
+                No, Skip
+              </button>
+              <button
+                onClick={handleSessionSummaryYes}
+                className="flex-1 rounded-xl bg-[var(--vscode-button-background)] px-4 py-2.5 text-sm font-medium text-[var(--vscode-button-foreground)] transition-all hover:bg-[var(--vscode-button-hoverBackground)]"
+              >
+                Yes, Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showAutoSummaryPrompt && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="koala-panel-strong mx-4 w-full max-w-md rounded-2xl border border-[var(--koala-border)] p-6 shadow-2xl">
+            <div className="mb-4 text-center">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--vscode-warningForeground)]/20">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-[var(--vscode-warningForeground)]">
+                  <path d="M12 9V14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  <circle cx="12" cy="17" r="1" fill="currentColor"/>
+                  <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              <h3 className="mb-1 text-lg font-semibold text-[var(--vscode-editor-foreground)]">
+                Context Usage at 80%
+              </h3>
+              <p className="text-sm text-[var(--vscode-descriptionForeground)]">
+                Your conversation is using 80% of the available context window. Would you like to save a summary before continuing?
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={handleAutoSummarizeNo}
+                className="flex-1 rounded-xl border border-[var(--vscode-input-border)] bg-[var(--vscode-button-secondaryBackground)] px-4 py-2.5 text-sm font-medium text-[var(--vscode-button-secondaryForeground)] transition-all hover:bg-[var(--vscode-button-secondaryHoverBackground)]"
+              >
+                Continue Without Saving
+              </button>
+              <button
+                onClick={handleAutoSummarizeYes}
+                className="flex-1 rounded-xl bg-[var(--vscode-button-background)] px-4 py-2.5 text-sm font-medium text-[var(--vscode-button-foreground)] transition-all hover:bg-[var(--vscode-button-hoverBackground)]"
+              >
+                Save Summary
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

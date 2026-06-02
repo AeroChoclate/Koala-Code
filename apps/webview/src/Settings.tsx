@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ExtensionSettings, AIProvider } from '@koala/shared';
-import { X, Shield, ChevronRight } from 'lucide-react';
+import { X, Shield, ChevronRight, FileText } from 'lucide-react';
 
 const KoalaIcon = (props: { size?: number }) => (
   <svg width={props.size || 18} height={props.size || 18} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-[var(--vscode-button-background)]">
@@ -11,7 +11,7 @@ const KoalaIcon = (props: { size?: number }) => (
   </svg>
 );
 
-type SettingsTab = 'provider' | 'permissions';
+type SettingsTab = 'provider' | 'permissions' | 'session';
 
 interface SettingsProps {
   settings: ExtensionSettings;
@@ -27,6 +27,7 @@ export function SettingsView({ settings, onSave, onClose }: SettingsProps) {
   const [autoRead, setAutoRead] = useState(settings.permissions?.autoApproveFileRead || false);
   const [autoWrite, setAutoWrite] = useState(settings.permissions?.autoApproveFileWrite || false);
   const [autoCommand, setAutoCommand] = useState(settings.permissions?.autoApproveCommandExecution || false);
+  const [sessionSummaryEnabled, setSessionSummaryEnabled] = useState(settings.sessionSummary?.enabled || false);
 
   const handleSave = () => {
     onSave({
@@ -35,6 +36,9 @@ export function SettingsView({ settings, onSave, onClose }: SettingsProps) {
         autoApproveFileRead: autoRead,
         autoApproveFileWrite: autoWrite,
         autoApproveCommandExecution: autoCommand
+      },
+      sessionSummary: {
+        enabled: sessionSummaryEnabled
       }
     });
     onClose();
@@ -84,6 +88,17 @@ export function SettingsView({ settings, onSave, onClose }: SettingsProps) {
         >
           <Shield size={14} />
           Permissions
+        </button>
+        <button
+          onClick={() => setActiveTab('session')}
+          className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-medium transition-all ${
+            activeTab === 'session'
+              ? 'bg-[var(--vscode-button-background)] text-[var(--vscode-button-foreground)]'
+              : 'text-[var(--vscode-tab-inactiveForeground)] hover:text-[var(--vscode-tab-activeForeground)]'
+          }`}
+        >
+          <FileText size={14} />
+          Session
         </button>
       </div>
       
@@ -211,6 +226,45 @@ export function SettingsView({ settings, onSave, onClose }: SettingsProps) {
             <div className="mt-6 p-3 rounded-lg bg-[color:color-mix(in_srgb,var(--vscode-errorForeground)_8%,transparent)] border border-[var(--vscode-errorForeground)]/20">
               <p className="text-[11px] text-[var(--vscode-errorForeground)]/90 leading-relaxed">
                 <strong>Warning:</strong> Auto-approving writes and commands can be dangerous. Only enable these if you trust the AI's decisions completely.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'session' && (
+          <div className="space-y-5">
+            <div className="space-y-1">
+              <h3 className="flex items-center gap-2 text-[11px] font-semibold text-[var(--vscode-descriptionForeground)] uppercase tracking-wider">
+                <FileText size={12} />
+                Session Summary
+              </h3>
+              <p className="text-[11px] text-[var(--vscode-descriptionForeground)]/70 mt-1">
+                Save a summary of your coding session when starting a new task
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <label className="flex items-start gap-3 p-3 rounded-lg border border-[var(--vscode-input-border)] hover:border-[var(--vscode-focusBorder)]/50 transition-all cursor-pointer">
+                <div className="mt-0.5">
+                  <input 
+                    type="checkbox" 
+                    checked={sessionSummaryEnabled} 
+                    onChange={(e) => setSessionSummaryEnabled(e.target.checked)}
+                    className="w-4 h-4 rounded border-[var(--vscode-checkbox-border)]"
+                  />
+                </div>
+                <div className="flex-1">
+                  <span className="text-xs font-medium text-[var(--vscode-foreground)]">Enable session summary</span>
+                  <p className="text-[11px] text-[var(--vscode-descriptionForeground)] mt-0.5">
+                    Prompt to save a session summary when starting a new chat or task
+                  </p>
+                </div>
+              </label>
+            </div>
+
+            <div className="mt-6 p-3 rounded-lg bg-[color:color-mix(in_srgb,var(--vscode-button-background)_8%,transparent)] border border-[var(--vscode-button-background)]/20">
+              <p className="text-[11px] text-[var(--vscode-descriptionForeground)] leading-relaxed">
+                When enabled, you'll be prompted to save a summary of your conversation before starting a new task. Summaries are saved to a "session-summaries" folder in your project.
               </p>
             </div>
           </div>

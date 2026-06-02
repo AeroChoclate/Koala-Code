@@ -161,6 +161,20 @@ export class StorageService {
     await fs.writeFile(this.indexPath, JSON.stringify(next, null, 2), 'utf8');
   }
 
+  async saveSessionSummary(workspacePath: string, conversationId: string, content: string): Promise<string> {
+    const summaryDir = path.join(workspacePath, 'session-summaries');
+    await fs.mkdir(summaryDir, { recursive: true });
+    
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const fileName = `session-${timestamp}.md`;
+    const filePath = path.join(summaryDir, fileName);
+    
+    const header = `# Session Summary\n\nConversation ID: ${conversationId}\nDate: ${new Date().toLocaleString()}\n\n---\n\n`;
+    await fs.writeFile(filePath, header + content, 'utf8');
+    
+    return filePath;
+  }
+
   private async replaceLatestAgentMessage(conversationId: string, content: string) {
     await this.ensureReady();
     const conversation = await this.loadConversation(conversationId);

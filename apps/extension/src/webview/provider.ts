@@ -68,10 +68,7 @@ export class KoalaWebviewProvider implements vscode.WebviewViewProvider {
           await this.handleChatSend(data.value);
           break;
         case 'chat:new':
-          this._messages = [];
-          this._activeConversationId = null;
-          this.postMessage({ type: 'chat:update', messages: this._messages });
-          await this.syncHistory();
+          await this.handleNewChat();
           break;
         case 'chat:history:list':
           await this.syncHistory();
@@ -106,6 +103,12 @@ export class KoalaWebviewProvider implements vscode.WebviewViewProvider {
           break;
         case 'permission:deny':
           this.resolvePermission(data.id, false);
+          break;
+        case 'session:summary:save':
+          await this.handleSessionSummarySave(data.content, data.conversationId);
+          break;
+        case 'session:summary:dismiss':
+          await this.handleSessionSummaryDismiss();
           break;
       }
     });
@@ -212,6 +215,49 @@ export class KoalaWebviewProvider implements vscode.WebviewViewProvider {
       resolver(approved);
       this._permissionResolvers.delete(id);
     }
+  }
+
+  private async handleNewChat() {
+    const settings = await this.getSettings();
+    
+    if (settings.sessionSummary?.enabled && this._activeConversationId && this._messages.length > 0) {
+      this.postMessage({ 
+        type: 'session:summary:prompt', 
+        conversationId: this._activeConversationId,
+        messages: [...this._messages] 
+      });
+      return;
+    }
+    
+    await this.startNewChat();
+  }
+
+  private async handleSessionSummarySave(content: string, conversationId: string) {
+    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+    
+    if (workspaceFolder) {
+      try {
+        const savedPath = await this._storage.saveSessionSummary(workspaceFolder.uri.fsPath, conversationId, content);
+        vscode.window.showInformationMessage(`Session summary saved to: ${savedPath}`);
+      } catch (error) {
+        vscode.window.showErrorMessage(`Failed to save session summary: ${error}`);
+      }
+    } else {
+      vscode.window.showWarningMessage('No workspace folder found. Cannot save session summary.');
+    }
+    
+    await this.startNewChat();
+  }
+
+  private async handleSessionSummaryDismiss() {
+    await this.startNewChat();
+  }
+
+  private async startNewChat() {
+    this._messages = [];
+    this._activeConversationId = null;
+    this.postMessage({ type: 'chat:update', messages: this._messages });
+    await this.syncHistory();
   }
 
   private async handleChatSend(input: string) {
